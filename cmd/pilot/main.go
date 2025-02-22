@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/kube-pilot-labs/k8s-command-agent/pkg/config"
-	"github.com/kube-pilot-labs/k8s-command-agent/pkg/kafka"
-	"github.com/kube-pilot-labs/k8s-command-agent/pkg/kube"
+	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/config"
+	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/kafka"
+	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/kube"
 )
 
 func main() {

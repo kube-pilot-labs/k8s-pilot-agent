@@ -1,6 +1,6 @@
-module github.com/kube-pilot-labs/k8s-command-agent
+module github.com/kube-pilot-labs/k8s-pilot-agent
 
-go 1.23.3
+go 1.24.0
 
 require (
 	github.com/segmentio/kafka-go v0.4.47

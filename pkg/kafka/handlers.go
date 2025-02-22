@@ -7,8 +7,8 @@ import (
 	"github.com/segmentio/kafka-go"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/kube-pilot-labs/k8s-command-agent/pkg/config"
-	"github.com/kube-pilot-labs/k8s-command-agent/pkg/kube"
+	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/config"
+	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/kube"
 )
 
 // MessageHandlerFunc is the type for handler functions for Kafka messages.
