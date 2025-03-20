@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -43,9 +42,6 @@ func InitConfig() error {
 	var err error
 	once.Do(func() {
 		c, err = loadConfig()
-		if err != nil {
-			log.Fatalf("failed to load config: %v", err)
-		}
 	})
 	return err
 }
