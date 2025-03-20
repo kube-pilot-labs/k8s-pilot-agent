@@ -10,8 +10,8 @@ import (
 )
 
 type Config struct {
-	KafkaBroker       string `mapstructure:"kafka_broker"`
-	CreateDeployTopic string `mapstructure:"create_deploy_topic"`
+	KafkaBroker       string `mapstructure:"KAFKA_BROKER"`
+	CreateDeployTopic string `mapstructure:"KAFKA_CREATE_DEPLOY_TOPIC"`
 }
 
 var (
@@ -20,13 +20,9 @@ var (
 )
 
 func loadConfig() (*Config, error) {
-	viper.SetConfigName("config")
-	viper.SetConfigType("json")
-	viper.AddConfigPath(".")
-
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
+	viper.AutomaticEnv()
+	viper.BindEnv("KAFKA_BROKER")
+	viper.BindEnv("KAFKA_CREATE_DEPLOY_TOPIC")
 
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {
@@ -34,10 +30,10 @@ func loadConfig() (*Config, error) {
 	}
 
 	if config.KafkaBroker == "" {
-		return nil, errors.New("please provide the kafka_broker value")
+		return nil, errors.New("KAFKA_BROKER is not set")
 	}
 	if config.CreateDeployTopic == "" {
-		return nil, errors.New("please provide the create_deploy_topic value")
+		return nil, errors.New("KAFKA_CREATE_DEPLOY_TOPIC is not set")
 	}
 
 	return &config, nil
