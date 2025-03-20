@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/config"
+	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/http"
 	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/kafka"
 	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/kube"
 )
@@ -23,6 +24,7 @@ func main() {
 
 	cfg := config.GetConfig()
 
+	go http.StartServer()
 	go kafka.ConsumeRequests(cfg.KafkaBroker, cfg.CreateDeployTopic, clientset)
 
 	sigs := make(chan os.Signal, 1)
