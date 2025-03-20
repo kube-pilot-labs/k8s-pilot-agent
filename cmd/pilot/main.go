@@ -21,6 +21,7 @@ func main() {
 	if err := config.InitConfig(); err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
+	kafka.RegisterHandlers()
 
 	cfg := config.GetConfig()
 

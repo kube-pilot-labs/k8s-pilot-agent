@@ -17,7 +17,7 @@ type MessageHandlerFunc func(clientset *kubernetes.Clientset, m kafka.Message) e
 // TopicHandlers is a map of topics and their corresponding handler functions.
 var TopicHandlers map[string]MessageHandlerFunc
 
-func init() {
+func RegisterHandlers() {
 	TopicHandlers = map[string]MessageHandlerFunc{
 		config.GetConfig().CreateDeployTopic: handleCreateDeploy,
 	}
