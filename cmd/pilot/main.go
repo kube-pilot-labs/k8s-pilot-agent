@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -25,11 +26,21 @@ func main() {
 
 	cfg := config.GetConfig()
 
-	go http.StartServer()
-	go kafka.ConsumeRequests(cfg.KafkaBroker, cfg.CreateDeployTopic, clientset)
+	ctx, cancel := context.WithCancel(context.Background())
+	httpShutdownComplete := make(chan struct{})
+	kafkaShutdownComplete := make(chan struct{})
+
+	go http.StartServer(ctx, httpShutdownComplete)
+	go kafka.ConsumeRequests(ctx, cfg.KafkaBroker, cfg.CreateDeployTopic, clientset, kafkaShutdownComplete)
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	<-sigs
 	log.Println("Shutdown signal received, exiting...")
+
+	cancel()
+
+	<-kafkaShutdownComplete
+	<-httpShutdownComplete
+	log.Println("All resources have been properly cleaned up")
 }
