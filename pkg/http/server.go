@@ -5,9 +5,18 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/config"
+	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/kafka"
 )
 
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
+	cfg := config.GetConfig()
+	if !kafka.IsConnected(cfg.KafkaBroker, 5*time.Second) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		w.Write([]byte("Kafka connection failed"))
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }

@@ -3,10 +3,28 @@ package kafka
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 	"k8s.io/client-go/kubernetes"
 )
+
+func IsConnected(kafkaBroker string, timeout time.Duration) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	conn, err := kafka.DialContext(ctx, "tcp", kafkaBroker)
+	if err != nil {
+		log.Printf("Kafka connection failed: %v", err)
+		return false
+	}
+	if err = conn.Close(); err != nil {
+		log.Printf("Kafka connection close failed: %v", err)
+		return false
+	}
+
+	return true
+}
 
 // ConsumeRequests continuously consumes Kafka messages and calls the corresponding handler function.
 func ConsumeRequests(ctx context.Context, kafkaBroker string, topic string, clientset *kubernetes.Clientset, shutdownComplete chan<- struct{}) {
