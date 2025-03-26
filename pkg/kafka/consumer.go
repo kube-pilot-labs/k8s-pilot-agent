@@ -12,7 +12,7 @@ import (
 
 var TopicReaders = map[string]*kafka.Reader{}
 
-func InitializeTopicReaders() {
+func InitializeTopicReaders(ctx context.Context, shutdownComplete chan<- struct{}) {
 	cfg := config.GetConfig()
 	healthCheckReader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{cfg.KafkaBroker},
@@ -30,6 +30,17 @@ func InitializeTopicReaders() {
 		MaxBytes: 10e6, // 10MB
 	})
 	TopicReaders[cfg.CreateDeployTopic] = createDeploymentReader
+
+	go func() {
+		<-ctx.Done()
+		for topic, reader := range TopicReaders {
+			log.Printf("Closing Kafka reader for topic: %s", topic)
+			if err := reader.Close(); err != nil {
+				log.Printf("Error closing Kafka reader for topic %s: %v", topic, err)
+			}
+		}
+		close(shutdownComplete)
+	}()
 }
 
 func IsConnected(timeout time.Duration) bool {
@@ -56,7 +67,7 @@ func IsConnected(timeout time.Duration) bool {
 }
 
 // ConsumeRequests continuously consumes Kafka messages and calls the corresponding handler function.
-func ConsumeRequests(ctx context.Context, topic string, clientset *kubernetes.Clientset, shutdownComplete chan<- struct{}) {
+func ConsumeRequests(ctx context.Context, topic string, clientset *kubernetes.Clientset) {
 	reader, exists := TopicReaders[topic]
 	if !exists {
 		log.Printf("Kafka reader for topic %s not initialized", topic)
@@ -64,16 +75,6 @@ func ConsumeRequests(ctx context.Context, topic string, clientset *kubernetes.Cl
 	}
 
 	log.Printf("[%s] Kafka topic consumption started", topic)
-
-	defer func() {
-		log.Printf("[%s] Closing Kafka reader", topic)
-		if err := reader.Close(); err != nil {
-			log.Printf("[%s] Error closing Kafka reader: %v", topic, err)
-		}
-
-		close(shutdownComplete)
-		log.Printf("[%s] Kafka consumer shutdown completed", topic)
-	}()
 
 	for {
 		m, err := reader.ReadMessage(ctx)
