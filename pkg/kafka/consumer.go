@@ -14,14 +14,6 @@ var TopicReaders = map[string]*kafka.Reader{}
 
 func InitializeTopicReaders(ctx context.Context, shutdownComplete chan<- struct{}) {
 	cfg := config.GetConfig()
-	healthCheckReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{cfg.KafkaBroker},
-		Topic:    "__healthcheck",
-		GroupID:  "__healthcheck.reader",
-		MinBytes: 10e3, // 10KB
-		MaxBytes: 10e6, // 10MB
-	})
-	TopicReaders["__healthcheck"] = healthCheckReader
 	createDeploymentReader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{cfg.KafkaBroker},
 		Topic:    cfg.CreateDeployTopic,
@@ -47,13 +39,17 @@ func IsConnected(timeout time.Duration) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	reader, exists := TopicReaders["__healthcheck"]
-	if !exists {
-		log.Printf("Healthcheck reader not initialized")
-		return false
+	cfg := config.GetConfig()
+	writer := &kafka.Writer{
+		Addr:     kafka.TCP(cfg.KafkaBroker),
+		Topic:    "__healthcheck",
+		Balancer: &kafka.LeastBytes{},
 	}
+	defer writer.Close()
 
-	_, err := reader.ReadMessage(ctx)
+	err := writer.WriteMessages(ctx, kafka.Message{
+		Value: []byte(""),
+	})
 	if err != nil {
 		if ctx.Err() != nil {
 			log.Printf("Kafka connection check timed out: %v", err)
