@@ -10,6 +10,11 @@ import (
 	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/kafka"
 )
 
+func PingHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
+
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
 	cfg := config.GetConfig()
 	if !kafka.IsConnected(cfg.KafkaBroker, 5*time.Second) {
@@ -22,6 +27,7 @@ func HealthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func StartServer(ctx context.Context, shutdownComplete chan<- struct{}) {
+	http.HandleFunc("/ping", PingHandler)
 	http.HandleFunc("/healthz", HealthHandler)
 
 	port := ":8080"
