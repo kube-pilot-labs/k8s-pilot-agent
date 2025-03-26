@@ -10,7 +10,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-var TopicReaders = map[string]*kafka.Reader{}
+var (
+	TopicReaders = map[string]*kafka.Reader{}
+	TopicWriters = map[string]*kafka.Writer{}
+)
 
 func InitializeTopicReaders(ctx context.Context, shutdownComplete chan<- struct{}) {
 	cfg := config.GetConfig()
@@ -23,12 +26,26 @@ func InitializeTopicReaders(ctx context.Context, shutdownComplete chan<- struct{
 	})
 	TopicReaders[cfg.CreateDeployTopic] = createDeploymentReader
 
+	writer := &kafka.Writer{
+		Addr:      kafka.TCP(cfg.KafkaBroker),
+		Topic:     cfg.HealthCheckTopic,
+		Balancer:  &kafka.LeastBytes{},
+		BatchSize: 1,
+	}
+	TopicWriters[cfg.HealthCheckTopic] = writer
+
 	go func() {
 		<-ctx.Done()
 		for topic, reader := range TopicReaders {
 			log.Printf("Closing Kafka reader for topic: %s", topic)
 			if err := reader.Close(); err != nil {
 				log.Printf("Error closing Kafka reader for topic %s: %v", topic, err)
+			}
+		}
+		for topic, writer := range TopicWriters {
+			log.Printf("Closing Kafka writer for topic: %s", topic)
+			if err := writer.Close(); err != nil {
+				log.Printf("Error closing Kafka writer for topic %s: %v", topic, err)
 			}
 		}
 		close(shutdownComplete)
@@ -40,13 +57,10 @@ func IsConnected(timeout time.Duration) bool {
 	defer cancel()
 
 	cfg := config.GetConfig()
-	writer := &kafka.Writer{
-		Addr:      kafka.TCP(cfg.KafkaBroker),
-		Topic:     "__healthcheck",
-		Balancer:  &kafka.LeastBytes{},
-		BatchSize: 1,
+	writer, exists := TopicWriters[cfg.HealthCheckTopic]
+	if !exists {
+		return false
 	}
-	defer writer.Close()
 
 	err := writer.WriteMessages(ctx, kafka.Message{
 		Value: []byte(""),

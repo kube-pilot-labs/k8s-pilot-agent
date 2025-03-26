@@ -11,6 +11,7 @@ import (
 type Config struct {
 	KafkaBroker       string `mapstructure:"KAFKA_BROKER"`
 	CreateDeployTopic string `mapstructure:"KAFKA_CREATE_DEPLOY_TOPIC"`
+	HealthCheckTopic  string `mapstructure:"KAFKA_HEALTHCHECK_TOPIC"`
 }
 
 var (
@@ -22,6 +23,7 @@ func loadConfig() (*Config, error) {
 	viper.AutomaticEnv()
 	viper.BindEnv("KAFKA_BROKER")
 	viper.BindEnv("KAFKA_CREATE_DEPLOY_TOPIC")
+	viper.BindEnv("KAFKA_HEALTHCHECK_TOPIC")
 
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {
@@ -34,6 +36,7 @@ func loadConfig() (*Config, error) {
 	if config.CreateDeployTopic == "" {
 		return nil, errors.New("KAFKA_CREATE_DEPLOY_TOPIC is not set")
 	}
+	config.HealthCheckTopic = viper.GetString("KAFKA_HEALTHCHECK_TOPIC")
 
 	return &config, nil
 }
