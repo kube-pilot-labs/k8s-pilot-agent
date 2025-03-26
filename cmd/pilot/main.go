@@ -22,6 +22,7 @@ func main() {
 	if err := config.InitConfig(); err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
+	kafka.InitializeTopicReaders()
 	kafka.RegisterHandlers()
 
 	cfg := config.GetConfig()
@@ -31,7 +32,7 @@ func main() {
 	kafkaShutdownComplete := make(chan struct{})
 
 	go http.StartServer(ctx, httpShutdownComplete)
-	go kafka.ConsumeRequests(ctx, cfg.KafkaBroker, cfg.CreateDeployTopic, clientset, kafkaShutdownComplete)
+	go kafka.ConsumeRequests(ctx, cfg.CreateDeployTopic, clientset, kafkaShutdownComplete)
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)

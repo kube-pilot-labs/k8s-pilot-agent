@@ -5,21 +5,50 @@ import (
 	"log"
 	"time"
 
+	"github.com/kube-pilot-labs/k8s-pilot-agent/pkg/config"
 	"github.com/segmentio/kafka-go"
 	"k8s.io/client-go/kubernetes"
 )
 
-func IsConnected(kafkaBroker string, timeout time.Duration) bool {
+var TopicReaders = map[string]*kafka.Reader{}
+
+func InitializeTopicReaders() {
+	cfg := config.GetConfig()
+	healthCheckReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  []string{cfg.KafkaBroker},
+		Topic:    "__healthcheck",
+		GroupID:  "__healthcheck.reader",
+		MinBytes: 10e3, // 10KB
+		MaxBytes: 10e6, // 10MB
+	})
+	TopicReaders["__healthcheck"] = healthCheckReader
+	createDeploymentReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  []string{cfg.KafkaBroker},
+		Topic:    cfg.CreateDeployTopic,
+		GroupID:  cfg.CreateDeployTopic + ".reader",
+		MinBytes: 10e3, // 10KB
+		MaxBytes: 10e6, // 10MB
+	})
+	TopicReaders[cfg.CreateDeployTopic] = createDeploymentReader
+}
+
+func IsConnected(timeout time.Duration) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	conn, err := kafka.DialContext(ctx, "tcp", kafkaBroker)
-	if err != nil {
-		log.Printf("Kafka connection failed: %v", err)
+	reader, exists := TopicReaders["__healthcheck"]
+	if !exists {
+		log.Printf("Healthcheck reader not initialized")
 		return false
 	}
-	if err = conn.Close(); err != nil {
-		log.Printf("Kafka connection close failed: %v", err)
+
+	_, err := reader.ReadMessage(ctx)
+	if err != nil {
+		if ctx.Err() != nil {
+			log.Printf("Kafka connection check timed out: %v", err)
+		} else {
+			log.Printf("Kafka connection failed: %v", err)
+		}
 		return false
 	}
 
@@ -27,14 +56,12 @@ func IsConnected(kafkaBroker string, timeout time.Duration) bool {
 }
 
 // ConsumeRequests continuously consumes Kafka messages and calls the corresponding handler function.
-func ConsumeRequests(ctx context.Context, kafkaBroker string, topic string, clientset *kubernetes.Clientset, shutdownComplete chan<- struct{}) {
-	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{kafkaBroker},
-		Topic:    topic,
-		GroupID:  topic + ".reader",
-		MinBytes: 10e3, // 10KB
-		MaxBytes: 10e6, // 10MB
-	})
+func ConsumeRequests(ctx context.Context, topic string, clientset *kubernetes.Clientset, shutdownComplete chan<- struct{}) {
+	reader, exists := TopicReaders[topic]
+	if !exists {
+		log.Printf("Kafka reader for topic %s not initialized", topic)
+		return
+	}
 
 	log.Printf("[%s] Kafka topic consumption started", topic)
 
