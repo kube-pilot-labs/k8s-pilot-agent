@@ -41,9 +41,10 @@ func IsConnected(timeout time.Duration) bool {
 
 	cfg := config.GetConfig()
 	writer := &kafka.Writer{
-		Addr:     kafka.TCP(cfg.KafkaBroker),
-		Topic:    "__healthcheck",
-		Balancer: &kafka.LeastBytes{},
+		Addr:      kafka.TCP(cfg.KafkaBroker),
+		Topic:     "__healthcheck",
+		Balancer:  &kafka.LeastBytes{},
+		BatchSize: 1,
 	}
 	defer writer.Close()
 
