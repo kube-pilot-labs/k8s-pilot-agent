@@ -23,7 +23,7 @@ func loadConfig() (*Config, error) {
 	viper.AutomaticEnv()
 	viper.BindEnv("KAFKA_BROKER")
 	viper.BindEnv("KAFKA_CREATE_DEPLOY_TOPIC")
-	viper.BindEnv("KAFKA_HEALTHCHECK_TOPIC")
+	viper.BindEnv("KAFKA_HEALTH_CHECK_TOPIC")
 
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {
@@ -36,7 +36,9 @@ func loadConfig() (*Config, error) {
 	if config.CreateDeployTopic == "" {
 		return nil, errors.New("KAFKA_CREATE_DEPLOY_TOPIC is not set")
 	}
-	config.HealthCheckTopic = viper.GetString("KAFKA_HEALTHCHECK_TOPIC")
+	if config.HealthCheckTopic == "" {
+		return nil, errors.New("KAFKA_HEALTH_CHECK_TOPIC is not set")
+	}
 
 	return &config, nil
 }
