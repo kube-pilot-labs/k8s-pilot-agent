@@ -11,7 +11,7 @@ import (
 type Config struct {
 	KafkaBroker       string `mapstructure:"KAFKA_BROKER"`
 	CreateDeployTopic string `mapstructure:"KAFKA_CREATE_DEPLOY_TOPIC"`
-	HealthCheckTopic  string `mapstructure:"KAFKA_HEALTHCHECK_TOPIC"`
+	HealthCheckTopic  string `mapstructure:"KAFKA_HEALTH_CHECK_TOPIC"`
 }
 
 var (
